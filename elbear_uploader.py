@@ -1,6 +1,7 @@
 import serial
 import time
 import argparse
+from sys import exit
 
 ACK = 0x0F                            # МК подтвердил 0b00001111
 NACK = 0xF0                           # МК отверг 0b11110000
@@ -28,6 +29,7 @@ def cmd_package_size(package_size):
     if int.from_bytes(read_byte, "big") == NACK:
         print("NACK. COMMAND_PACKAGE_SIZE")
         exit()
+    return read_byte == b'\x0f'
 
 # Отправить пакет
 def cmd_send_package(data_package):
@@ -159,8 +161,19 @@ if namespace.hexpath:
                     i -= 1 # текущая строчка удалилась, следующая будет с тем же индексом
             i += 1
 
-    ser = serial.Serial(port = namespace.com, baudrate = namespace.baudrate)
-    time.sleep(0.5) # Задержка чтобы успел выставиться RESET
+    ser = serial.Serial(port = namespace.com, baudrate = namespace.baudrate, timeout = 0.1)
+
+    ping = False
+    for i in range(10): # вместо задержки забрасываем запросами
+        ping = cmd_package_size(15)
+        if ping:
+           break
+
+    if ping:
+        print("Device connected")
+    else:
+        print("Device not responding")
+        exit()
 
     if namespace.fullerase:
         print('Erasing memory')
