@@ -3,18 +3,26 @@ import time
 import argparse
 from sys import exit
 
-ACK = 0x0F                            # МК подтвердил 0b00001111
-NACK = 0xF0                           # МК отверг 0b11110000
-COMMAND_PACKAGE_SIZE        = b'\x30' # Команда размера пакета 
-COMMAND_SEND_PACKAGE        = b'\x60' # Команда отправить пакет 
-COMMAND_FULL_ERASE          = b'\xFE'
+TIMEOUT_DEFAULT = 0.1   # sec
+ACK = 0x0F              # МК подтвердил 0b00001111
+NACK = 0xF0             # МК отверг 0b11110000
+COMMAND_PACKAGE_SIZE        = b'\x30'       # Команда размера пакета 
+COMMAND_SEND_PACKAGE        = b'\x60'       # Команда отправить пакет 
+COMMAND_FULL_ERASE          = 0xBADC0FEE    # Команда очистить чип 
 
 
 def cmd_full_erase():
-    ser.write(bytes(COMMAND_FULL_ERASE))
-    read_byte = ser.read(1) # Прочесть байт ACK/NACK от контроллера
+    ser.write(COMMAND_FULL_ERASE.to_bytes(4, "big"))
+    read_byte = ser.read(1)         # Прочесть подтверждение получения команды
     if int.from_bytes(read_byte, "big") == NACK:
         print("NACK. COMMAND_FULL_ERASE")
+        exit()
+    ser.timeout = None              # Выключить таймаут, чтобы дождаться завершения процесса стирания чипа
+    read_byte = ser.read(1)         # Прочесть байт ACK/NACK от контроллера
+    ser.timeout = TIMEOUT_DEFAULT   # Включить таймаут обратно
+    
+    if int.from_bytes(read_byte, "big") == NACK:
+        print("NACK. FULL_ERASE FAILED")
         exit()
 
 # Задать размер пакета 
@@ -161,7 +169,7 @@ if namespace.hexpath:
                     i -= 1 # текущая строчка удалилась, следующая будет с тем же индексом
             i += 1
 
-    ser = serial.Serial(port = namespace.com, baudrate = namespace.baudrate, timeout = 0.1)
+    ser = serial.Serial(port = namespace.com, baudrate = namespace.baudrate, timeout = TIMEOUT_DEFAULT)
 
     ping = False
     for i in range(10): # вместо задержки забрасываем запросами
