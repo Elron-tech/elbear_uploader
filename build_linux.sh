@@ -1,6 +1,4 @@
 #!/bin/bash
-
-source venv/bin/activate
 python -m nuitka ./elbear_uploader.py \
 --output-dir=build \
 --output-filename="elbear_uploader" \
