@@ -1,3 +1,6 @@
 venv/
-venv1/
+venv_win/
+venv_linux/
 build/
+build_win/
+build_linux/
